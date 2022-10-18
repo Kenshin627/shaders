@@ -1,18 +1,42 @@
+// Author:
+// Title:
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+const float PI = 3.14159265358979;
+vec2 N(float angle) {
+    return vec2(sin(angle), cos(angle));
+}
+
 void main() {
-    vec2 coord = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
+    vec2 st = (gl_FragCoord.xy -.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
     vec2 mouse = iMouse.xy / iResolution.xy;
-    coord *= 3.;
-    vec3 col = vec3(0.0);
-    float angle = mouse.x * 3.1415926;
-    vec2 n = vec2(sin(angle), cos(angle));
-    // col += dot(coord, n);
-    // col = smoothstep(0.003, 0.0, abs(col));
-    coord.x = abs(coord.x);
-    coord.x -= 0.5;
-    coord -= n * min(0., dot(coord, n)) * 2.;
-    float d = length(coord - vec2(clamp(coord.x, -1., 1.), 0.));
-    col += smoothstep(0.03, 0.0, d);
-    // col += d;
-    col.rg += coord;
-    gl_FragColor = vec4(col, 1.0);
+    vec3 col = vec3(0.);
+    st *= 1.25;
+    st.x = abs(st.x);
+    st.y += tan((5. / 6.) * PI) * .5;
+    vec2 n = N((5. / 6.) * PI);
+    st -= n * max(0.0, dot(st - vec2(.5, 0.), n)) * 2.0;
+    
+    float angle = (2. / 3.) * PI;
+    n = N(angle);
+
+    st.x += .5;
+    float scale = 1.;
+
+    for(int i = 0; i < 7; i++){
+        st *= 3.;
+        scale *= 3.;
+        st.x -= 1.5;
+        st.x = abs(st.x);
+        st.x -=.5;
+        st -= n * min(0.0, dot(st, n)) * 2.0;
+    }
+    
+	float d= length(st - vec2(clamp(st.x, -1., 1.), 0.0));
+    d = smoothstep(1. / iResolution.y, 0.0, d / scale);
+	col = vec3(d);
+    gl_FragColor = vec4(col,1.0);
 }
