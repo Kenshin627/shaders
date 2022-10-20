@@ -157,12 +157,12 @@ void main() {
     vec3 lookAt = vec3(0., 0.2, 1.0);
 
     Ray ray = getRay(uv, ro, lookAt, cameraZoom);
-    float t = iTime * 0.1;
+    float t = iTime * 0.05;
 
     vec3 col = StreetLights(ray, t);
     col += HeadLights(ray, t);
     col += TailLights(ray, t);
     col += EnvirmentLights(ray, t);
-    col += ray.d.y
+    col += (ray.d.y + .25)* vec3(.2, .1, .5);
     gl_FragColor = vec4(col, 1.0);
 }
