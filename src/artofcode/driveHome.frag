@@ -63,6 +63,7 @@ vec3 StreetLights(Ray ray, float t) {
 }
 
 vec3 HeadLights(Ray ray, float t) {
+    t *= 2.;
     float mask = .0;
     float s = 1. / 30.;
     float w1 = 0.25;
@@ -74,21 +75,53 @@ vec3 HeadLights(Ray ray, float t) {
         float z = 100. - ti * 100.;
         float fade = ti * ti * ti * ti * ti;
         float focus = smoothstep(0.9, 1.0, ti);
-        float size = mix(0.03, 0.01, focus);
+        float size = mix(0.03, 0.02, focus);
 
         float ref = 0.;
-        mask += Bokeh(ray, vec3(-1. - w1, .15, z), .03, .1) * fade;
-        mask += Bokeh(ray, vec3(-1. + w1, .15, z), .03, .1) * fade;
+        mask += Bokeh(ray, vec3(-1. - w1, .15, z), size, .1) * fade;
+        mask += Bokeh(ray, vec3(-1. + w1, .15, z), size, .1) * fade;
 
-        mask += Bokeh(ray, vec3(-1. - w2, .15, z), .03, .1) * fade;
-        mask += Bokeh(ray, vec3(-1. + w2, .15, z), .03, .1) * fade;
+        mask += Bokeh(ray, vec3(-1. - w2, .15, z), size, .1) * fade;
+        mask += Bokeh(ray, vec3(-1. + w2, .15, z), size, .1) * fade;
 
-        ref += Bokeh(ray, vec3(-1. - w2, -.15, z), .03, .1) * fade;
-        ref += Bokeh(ray, vec3(-1. + w2, -.15, z), .03, .1) * fade;
+        ref += Bokeh(ray, vec3(-1. - w2, -.15, z), size * 3., 1.) * fade;
+        ref += Bokeh(ray, vec3(-1. + w2, -.15, z), size * 3., 1.) * fade;
         ref *= focus;
         mask += ref;
     }
     return  vec3(.9, 0.9, 1.0) * mask;
+}
+
+vec3 TailLights(Ray ray, float t) {
+    t *= 0.25;
+    float mask = .0;
+    float s = 1. / 15.;
+    float w1 = 0.25;
+    float w2 = w1 * 1.25;
+    for(float i = 0.; i < 1.; i += s){
+        float n = N(i);
+        if(n > .5) continue;
+        float x = 1.5 - step(0.25, n);
+        float ti = fract(t + i);
+        float z = 100. - ti * 100.;
+        float fade = ti * ti * ti * ti * ti;
+        float focus = smoothstep(0.9, 1.0, ti);
+        float size = mix(0.03, 0.02, focus);
+
+        float ref = 0.;
+
+        mask += Bokeh(ray, vec3(x - w1, .15, z), size, .1) * fade;
+        mask += Bokeh(ray, vec3(x + w1, .15, z), size, .1) * fade;
+
+        mask += Bokeh(ray, vec3(x - w2, .15, z), size, .1) * fade;
+        mask += Bokeh(ray, vec3(x + w2, .15, z), size, .1) * fade;
+
+        ref += Bokeh(ray, vec3(x - w2, -.15, z), size * 3., 1.) * fade;
+        ref += Bokeh(ray, vec3(x + w2, -.15, z), size * 3., 1.) * fade;
+        ref *= focus;
+        mask += ref;
+    }
+    return  vec3(0.7922, 0.2, 0.098) * mask;
 }
 
 void main() {
@@ -102,5 +135,6 @@ void main() {
 
     vec3 col = StreetLights(ray, t);
     col += HeadLights(ray, t);
+    col += TailLights(ray, t);
     gl_FragColor = vec4(col, 1.0);
 }
