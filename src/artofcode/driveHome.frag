@@ -150,19 +150,55 @@ vec3 TailLights(Ray ray, float t) {
     return  vec3(1., 0.1, 0.03) * mask;
 }
 
+vec2 Rain(vec2 uv, float t) {
+    t *= 40.;
+    vec2 a = vec2(3., 1.);
+    vec2 st = uv * a; 
+
+    vec2 id = floor(st);
+    st.y += t * .22;
+    float n = fract(sin(id.x * 716.34) * 768.34);
+    st.y += n;
+    uv.y +=n;
+
+    id = floor(st);
+    st = fract(st) -.5;
+
+    t += fract(sin(id.x * 76.34 + id.y * 1456.76) * 768.34) * 6.283;
+    float y = -sin(t + sin(t + sin(t)*.5)) * .43;
+    vec2 p = vec2(0., y);
+    vec2 o1 = (st - p) / a;
+    float d = length(o1);
+    float m1 = smoothstep(0.07, 0., d);
+    // if(st.x > 0.46 || st.y > 0.49){
+    //     m1 = 1.;
+    // }
+    vec2 o2 = (fract(uv * a.x * vec2(1., 2.)) - .5) / vec2(1., 2.);
+    d = length(o2);
+    float m2 = smoothstep(0.3 * (.5 - st.y), 0.00, d) * smoothstep(-.1, .1, st.y - p.y);
+
+    return vec2(m1 * o1 * 30. + m2 * o2 * 10.);
+}
+
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
     float cameraZoom = 1.5;
     vec3 ro = vec3(0., 0.2, .0);
     vec3 lookAt = vec3(0., 0.2, 1.0);
-
-    Ray ray = getRay(uv, ro, lookAt, cameraZoom);
     float t = iTime * 0.05;
+
+    vec2 rain = Rain(uv * 5., t) * .5;
+    rain += Rain(uv * 7., t) * .5;
+
+    uv.x += sin(uv.y * 70.) * .005;
+    uv.y += sin(uv.x * 170.) * .002;
+    Ray ray = getRay(uv - rain * .5, ro, lookAt, cameraZoom);
 
     vec3 col = StreetLights(ray, t);
     col += HeadLights(ray, t);
     col += TailLights(ray, t);
     col += EnvirmentLights(ray, t);
     col += (ray.d.y + .25)* vec3(.2, .1, .5);
+
     gl_FragColor = vec4(col, 1.0);
 }
