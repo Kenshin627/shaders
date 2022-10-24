@@ -1,6 +1,6 @@
 #define MAX_NUMBER 100
-#define MAX_DIST 180.
-#define SURF_DIST 0.01
+#define MAX_DIST 100.
+#define SURF_DIST 0.001
 
 struct Ray {
     vec3 ro;
@@ -54,13 +54,14 @@ float sdCylinder(vec3 p, vec3 a, vec3 b, float r) {
 }
 
 float getDist(vec3 p) {
-    vec4 s = vec4(-5., 1., 6., 1.);
+    vec4 s = vec4(0., .5, 0., .5);
     float sd = length(s.xyz - p) - s.w;
     float pd = p.y;
-    float cd = sdCapsule(p, vec3(2., 1., 6.), vec3(2., 2., 6.), .2);
-    float td = sdTorus(p, vec2(1.5, .3), vec3(0., .5, 6.));
-    float bd = sdBox(p, vec3(3., 1., 6.), vec3(.5));
-    float cld = sdCylinder(p, vec3(5., 1., 6.), vec3(5., 2., 6.), .3);
+    float cd = sdCapsule(p, vec3(1., .2, 2.), vec3(3., .2, 0.), .2);
+    float td = sdTorus(p, vec2(1.0, .3), vec3(-1.5, .3, 2.5));
+    vec3 boxPos = vec3(-2., .5, -.5);
+    float bd = sdBox(p, boxPos, vec3(.5));
+    float cld = sdCylinder(p, vec3(1., 2., -1.5), vec3(1., 0., -1.5), .2);
     float d = min(sd, pd);
     d = min(d, cd);
     d = min(d, td);
@@ -83,7 +84,7 @@ float RayMarching(vec3 ro, vec3 rd) {
 
 vec3 getNormal(vec3 p) {
     float d = getDist(p);
-    vec2 da = vec2(0.01, 0.0);
+    vec2 da = vec2(0.001, 0.0);
     vec3 n = d - vec3(
         getDist(p - vec3(da.xyy)),
         getDist(p - vec3(da.yxy)),
@@ -93,9 +94,9 @@ vec3 getNormal(vec3 p) {
 }
 
 float getLight(vec3 p) {
-    vec3 lightpos = vec3(0., 5., 6.);
-    lightpos.xz += vec2(sin(iTime), cos(iTime));
-    vec3 l  = lightpos - p;
+    vec3 lightpos = vec3(6., 2., 3.);
+    lightpos.xz += vec2(sin(iTime) * 2. * 3.14, cos(iTime) * 2. * 3.14) * 2.;
+    vec3 l  = normalize(lightpos - p);
     vec3 n = getNormal(p);
     float diffuse = clamp(dot(n, l),0. ,1.);
     float d = RayMarching(p + n * SURF_DIST * 2., l);
@@ -108,21 +109,20 @@ float getLight(vec3 p) {
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
     Ray ray;
-    vec3 camPos = vec3(0., 2., -2.);
-    vec3 lookAt = vec3(0., 1., 1.);
-    float zoom = .5;
+    vec3 camPos = vec3(0., 4., -6.);
+    vec3 lookAt = vec3(0., .0, 0.);
+    float zoom = 1.;
     vec3 y = vec3(.0, 1., .0);
     vec3 F = normalize(lookAt - camPos);
     vec3 R = cross(y, F);
     vec3 U = cross(F, R);
     ray.ro = camPos;
     vec3 c = ray.ro + F * zoom;
-    ray.rd = c + uv.x * R + uv.y * U - ray.ro;
-    // ray.rd = vec3(uv.x, uv.y, 1.);
-
+    ray.rd = normalize(c + uv.x * R + uv.y * U - ray.ro); 
     float d = RayMarching(ray.ro, ray.rd);
-    
     vec3 p = ray.ro + d * ray.rd;
     float diffuse = getLight(p);
-    gl_FragColor = vec4(vec3(diffuse), 1.0);
+    vec3 col = vec3(diffuse);
+    col = pow(col, vec3(.4545));	// gamma correction
+    gl_FragColor = vec4(col, 1.0);
 }
