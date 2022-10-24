@@ -7,58 +7,74 @@ struct Ray {
     vec3 rd;
 };
 
-float distLine(Ray ray, vec3 p) {
-    return length(cross(p - ray.ro, ray.rd)) / length(ray.rd);
+mat2 Rot(float a) {
+    float s = sin(a), c = cos(a);
+    return mat2(c, -s, s, c);
 }
 
-float drawPoint(Ray ray, vec3 p) {
-    float d = distLine(ray, p);
-    return smoothstep(0.002, 0.001, d);
+//SDF
+
+/**
+* Sphere
+*/
+float sdSphere(vec3 p, vec3 c, float r) {
+    return length(c - p) - r;
 }
 
+/**
+* Capsule
+*/
 float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
     vec3 ap = p - a;
     vec3 ab = b - a;
-    float t = clamp(dot(ap, ab) / dot(ab, ab), 0., 1.);
+    float t = dot(ap ,ab) / dot(ab, ab);
+    t = clamp(t, 0., 1.);
     vec3 c = a + t * ab;
-    vec3 d = p - c;
-    return length(d) - r;
+    vec3 cp = p - c;
+    return length(cp) - r;
 }
 
-float sdTorus(vec3 p, vec2 r, vec3 c) {
+/**
+* Torus
+*/
+float sdTorus(vec3 p, vec3 c, vec2 r) {
     vec3 p1 = p - c;
-    vec3 c1 = vec3(0., 0., 0.);
     vec2 pxz = p1.xz;
     float x = length(pxz) - r.x;
     float y = p1.y;
-    float d = length(vec2(x, y));
-    return  d - r.y;
+    return length(vec2(x, y)) - r.y;
 }
 
+/**
+* Box
+*/
 float sdBox(vec3 p, vec3 c, vec3 s) {
-    vec3 p1 = p - c;
-    return length(max(abs(p1) - s, 0.));
+    return length(max(abs(p - c) - s, 0.));
 }
 
+/**
+* Cylinder
+*/
 float sdCylinder(vec3 p, vec3 a, vec3 b, float r) {
     vec3 ap = p - a;
-    vec3 ab = b- a;
+    vec3 ab = b - a;
     float t = dot(ap, ab) / dot(ab, ab);
-    vec3 c  = a + t * ab;
-    float d = length(p - c) - r;
-    t = abs(t - .5) - .5;
-    float y = t * length(ab);
-    float e = length(max(vec2(d, y), 0.));
-    float i = min(max(d, y), 0.);
+    vec3 c = a + t * ab;
+    vec3 cp = p - c;
+    float x = length(cp) - r;
+    float y =(abs(t - .5) - .5) * length(ab);
+
+    float e = length(max(vec2(x, y), 0.));
+    float i = min(max(x, y), 0.);
     return e + i;
 }
 
 float getDist(vec3 p) {
     vec4 s = vec4(0., .5, 0., .5);
-    float sd = length(s.xyz - p) - s.w;
+    float sd = sdSphere(p, vec3(0., .5, 0.), .5);
     float pd = p.y;
     float cd = sdCapsule(p, vec3(1., .2, 2.), vec3(3., .2, 0.), .2);
-    float td = sdTorus(p, vec2(1.0, .3), vec3(-1.5, .3, 2.5));
+    float td = sdTorus(p, vec3(-1.5, .3, 2.5), vec2(1.0, .3));
     vec3 boxPos = vec3(-2., .5, -.5);
     float bd = sdBox(p, boxPos, vec3(.5));
     float cld = sdCylinder(p, vec3(1., 2., -1.5), vec3(1., 0., -1.5), .2);
