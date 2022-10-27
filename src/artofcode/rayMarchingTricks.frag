@@ -7,6 +7,11 @@ struct Ray {
     vec3 rd;
 };
 
+mat2 Rot(float a) {
+    float s = sin(a), c = cos(a);
+    return mat2(c, -s, s, c);
+}
+
 float sdSphere(vec3 p, vec3 c, float r) {
     return length(c - p) - r;
 }
@@ -53,17 +58,26 @@ float sdCylinder(vec3 p, vec3 a, vec3 b, float r) {
 }
 
 float getDist(vec3 p) {
-    float sd = sdSphere(p, vec3(0., 0.5, 0.), .5);
-    float sp = sdPlane(p, vec3(.0, 1., 0.), .0);
-    float sbox = sdBox(p, vec3(1.5, 0.5, 0.), vec3(.5));
-    float sc = sdCapsule(p, vec3(.0, .1, -2.), vec3(1.5, .1, -2.5), 0.1);
-    float st = sdTorus(p, vec3(-1., .15, -1.5), vec2(.5, .15));
-    float sCyl = sdCylinder(p, vec3(-1.0, .1, -3.5), vec3(.5, .1, -3.), 0.08);
-    float d = min(sd, sp);
-    d = min(d, sbox);
-    d = min(d, sc);
-    d = min(d, st);
-    d = min(d, sCyl);
+    // float sd = sdSphere(p, vec3(0., 0.5, 0.), .5);
+    float sp = sdPlane(p, vec3(.0, 1., 0.), 0.);
+    // p.z += sin(p.x * 8. + iTime * 1.) * .5; //sinwave
+    vec3 bp = vec3(0., .5, 0.);
+    vec3 p1 = p - bp;
+    float scale = mix(1., 3., smoothstep(-2., 4., p1.y));
+    p1 *= vec3(scale);
+    float rot = smoothstep(3.14 / 2., 0., p1.y);
+    // p1.xz *= Rot(rot);
+    p1 +=bp;
+    float  sbox = sdBox(p1, vec3(0., 2., 0.), vec3(1., 2., 1.)) / scale;
+    // sbox -= sin(p.x * 20.) * .2; //displacement
+    // float sc = sdCapsule(p, vec3(.0, .1, -2.), vec3(1.5, .1, -2.5), 0.1);
+    // float st = sdTorus(p, vec3(-1., .15, -1.5), vec2(.5, .15));
+    // float sCyl = sdCylinder(p, vec3(-1.0, .1, -3.5), vec3(.5, .1, -3.), 0.08);
+    float d = min(sbox, sp);
+    // d = min(d, sbox);
+    // d = min(d, sc);
+    // d = min(d, st);
+    // d = min(d, sCyl);
     return d;
 }
 
@@ -91,8 +105,8 @@ vec3 getNormal(vec3 p) {
 }
 
 float getLight(vec3 p) {
-    vec3 lightPos = vec3(5., 10., 5.);
-    lightPos.xz += vec2(sin(iTime), cos(iTime));
+    vec3 lightPos = vec3(1., 6., -4.);
+    // lightPos.xz += vec2(sin(iTime), cos(iTime));
     vec3 l = normalize(lightPos - p);
     vec3 n = getNormal(p);
     float diffuse = clamp(dot(l, n), 0. ,1.);
